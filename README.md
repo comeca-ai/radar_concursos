@@ -31,3 +31,8 @@ Ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 ## Status
 
 Repositório criado em 2026-10-29. Próximo: coletor PNCP + modelo `oportunidade` + alertas.
+
+## Teste João Pessoa (PNCP)
+- Coleta: `python3 scripts/coletar_jp.py` (padrão últimos 60 dias; `DIAS=30` para mudar). Bruto em `data/jp/bruto/`, normalizado em `data/jp/oportunidades.json` (cópia em `docs/site/oportunidades.json`).
+- Dashboard: `docs/site/index.html` (HTML/CSS/JS puro, sem build). Local: `python3 -m http.server -d docs` e abra http://localhost:8000/site/.
+- GitHub Pages: Settings → Pages → Source "Deploy from a branch" → Branch `main`, pasta `/docs` → Save. URL: https://jhonataemerick-crypto.github.io/radar_concursos/site/
