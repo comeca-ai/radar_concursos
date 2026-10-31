@@ -19,7 +19,7 @@ h1{font-size:28px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}.sub{colo
 .filters label{display:flex;flex-direction:column;font-size:13px;color:var(--muted);gap:4px}
 .filters input[type=search],select{min-height:44px;padding:0 12px;border:1px solid #c9d1db;border-radius:10px;font:inherit;background:#fff;color:var(--ink)}
 .chk{flex-direction:row!important;align-items:center;min-height:44px;gap:8px!important;color:var(--ink)!important}.chk input{width:20px;height:20px}
-button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid #c9d1db;background:#fff;font:inherit;cursor:pointer}
+button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid #c9d1db;background:#fff;font:inherit;cursor:pointer}button.primary{background:#1a5fb4;border-color:#1a5fb4;color:#fff}button.primary:disabled{opacity:.55;cursor:wait}
 .count{color:var(--muted);font-size:14px;margin:0 0 12px}
 .tw{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff;max-height:70vh}
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}

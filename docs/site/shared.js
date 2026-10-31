@@ -3,7 +3,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const brl=v=>v==null?"—":v.toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
 const dt=s=>s?s.slice(0,10).split("-").reverse().join("/"):"—";
 function shell(active){
- const L=[["index.html","Início (João Pessoa)"],["campina.html","Campina Grande"],["recife.html","Recife (PE)"],["comparativo.html","Comparativo"]];
+ const L=[["index.html","Início (João Pessoa)"],["campina.html","Campina Grande"],["recife.html","Recife (PE)"],["comparativo.html","Comparativo"],["pipeline.html","CRM"]];
  document.body.insertAdjacentHTML("afterbegin",`<header class="top"><div class="in"><a class="brand" href="index.html"><i></i>Radar Licitações</a><nav aria-label="Principal">${L.map(([h,t])=>`<a href="${h}"${h==active?' aria-current="page"':""}>${t}</a>`).join("")}<a href="https://pncp.gov.br/" target="_blank" rel="noopener">Fonte: PNCP ↗</a></nav></div></header>`);
  document.body.insertAdjacentHTML("beforeend",`<footer>Dados públicos do <a href="https://pncp.gov.br/" target="_blank" rel="noopener">Portal Nacional de Contratações Públicas (PNCP)</a>. Conteúdo informativo — não é parecer jurídico. Confira sempre o edital original.</footer>`);
 }

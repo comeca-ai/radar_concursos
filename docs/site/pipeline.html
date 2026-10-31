@@ -1,0 +1,68 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radar Licitações — Pipeline CRM</title><link rel="stylesheet" href="shared.css"></head><body>
+<main><h1>Pipeline: escolha onde participar</h1><p class="sub" id="meta">Licitações abertas de TI/IA (JP, Campina Grande, Recife) — dados do PNCP.</p>
+<div class="note"><strong>Como usar.</strong> Marque os editais (ou <b>Selecionar todos</b>), depois clique em <b>Enviar ao CRM</b> — as linhas vão para a planilha Google. A seleção fica salva neste navegador. Fonte: PNCP.</div>
+<div class="kpis" id="kpis"></div>
+<section class="panel" aria-label="Editais abertos">
+<div class="filters"><label class="q">Buscar<input type="search" id="fq" placeholder="ex.: software, nuvem"></label>
+<label class="chk"><input type="checkbox" id="fa"> Mostrar todos abertos (não só TI/IA)</label>
+<button id="sel" type="button">Selecionar todos</button>
+<button id="crm" type="button" class="primary">Enviar ao CRM</button>
+<button id="cp" type="button">Copiar URLs</button>
+<button id="dl" type="button">Baixar CSV seleção</button>
+<button id="clr" type="button">Limpar seleção</button></div>
+<p class="count" id="cnt" aria-live="polite"></p>
+<p class="count" id="msg" aria-live="polite"></p>
+<div id="res"></div></section></main>
+<script src="shared.js"></script><script>
+shell("pipeline.html");
+const ICP=/\b(software|inteligencia artificial|chatbot|cloud|nuvem|tecnologia da informacao|licen[cs]as? de (uso|software)|saas|aplicativo|data ?center|ciberseguranca|seguranca da informacao|sistemas? (de gestao|de informac|web|informatizad|integrad)|desenvolvimento de sistemas|banco de dados|solucao tecnologica|informatica)\b/;
+const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/sistema de registro de precos|portal de compras publicas|\bsrp\b/g,"");
+const K="radar_pipeline_sel", WK="radar_crm_webhook";
+let S=new Set(JSON.parse(localStorage.getItem(K)||"[]")), D=[], visible=[];
+const save=()=>{localStorage.setItem(K,JSON.stringify([...S]));kp()};
+const now=new Date().toISOString().slice(0,19);
+const say=t=>{const m=$("msg");if(m)m.textContent=t||"";};
+Promise.all([["oportunidades.json","jp"],["oportunidades-cg.json","cg"],["oportunidades-pe.json","pe"]].map(([f,c])=>fetch(f).then(r=>r.json()).then(j=>(j.oportunidades||[]).map(o=>({...o,cid:c,icp:ICP.test(norm(o.objeto))}))).catch(()=>[])))
+.then(a=>{D=a.flat().filter(o=>o.data_encerramento&&o.data_encerramento>=now);["fq","fa"].forEach(i=>$(i).addEventListener("input",draw));draw()});
+function kp(){const ab=D.filter(o=>o.icp);$("kpis").innerHTML=[[ab.length,"abertas TI/IA"],[D.length,"abertas no total"],[S.size,"selecionadas"]].map(([b,s])=>`<div class="kpi"><b>${b}</b><small>${s}</small></div>`).join("")}
+function draw(){kp();const q=norm($("fq").value).trim(),all=$("fa").checked;
+ visible=D.filter(o=>(all||o.icp)&&(!q||norm(o.objeto+" "+o.orgao).includes(q))).sort((a,b)=>a.data_encerramento.localeCompare(b.data_encerramento));
+ $("cnt").textContent=`${visible.length} editais abertos`+(visible.length>500?" · mostrando 500":"");
+ $("res").innerHTML=visible.length?`<div class="tw"><table><thead><tr><th><span class="sr">Selecionar</span></th><th>Cidade</th><th>Órgão</th><th>Objeto</th><th>Encerramento</th><th>Valor estimado</th><th><span class="sr">Link</span></th></tr></thead><tbody>${visible.slice(0,500).map(o=>`<tr><td><input type="checkbox" aria-label="Selecionar" data-u="${esc(o.url)}"${S.has(o.url)?" checked":""}></td><td data-l="Cidade"><span class="pill ${o.cid}">${o.cid.toUpperCase()}</span></td><td data-l="Órgão">${esc(o.orgao)}</td><td data-l="Objeto" title="${esc(o.objeto)}">${esc((o.objeto||"").slice(0,160))}</td><td data-l="Encerramento">${dt(o.data_encerramento)}</td><td class="v" data-l="Valor">${brl(o.valor_estimado)}</td><td><a class="open" href="${esc(o.url)}" target="_blank" rel="noopener">Ver no PNCP ↗</a></td></tr>`).join("")}</tbody></table></div>`:empty("Nenhum edital aberto com esse filtro.");
+ $("res").querySelectorAll("input[data-u]").forEach(c=>c.onchange=()=>{c.checked?S.add(c.dataset.u):S.delete(c.dataset.u);save()});}
+$("sel").onclick=()=>{visible.slice(0,500).forEach(o=>S.add(o.url));save();draw();say(`Selecionados ${Math.min(visible.length,500)} da lista atual.`);};
+$("cp").onclick=()=>{if(!S.size)return alert("Nenhum edital selecionado.");navigator.clipboard.writeText([...S].join("\n")).then(()=>{say(`Copiado ${S.size} URL(s).`);$("cp").textContent=`Copiado (${S.size})`;setTimeout(()=>$("cp").textContent="Copiar URLs",2000)})};
+$("clr").onclick=()=>{S.clear();save();draw();say("Seleção limpa.");};
+$("dl").onclick=()=>{const C="status,marcado_em,fonte,municipio,orgao,objeto,valor_estimado,data_encerramento,modalidade,url_pncp,id_controle,notas".split(","),q=v=>`"${String(v??"").replace(/"/g,'""').replace(/\s+/g," ")}"`,t=new Date().toISOString().slice(0,16).replace("T"," ");
+ const L=D.filter(o=>S.has(o.url)).map(o=>["Interessado",t,o.cid,o.municipio,o.orgao,o.objeto,o.valor_estimado,(o.data_encerramento||"").replace("T"," "),o.modalidade,o.url,o.id,""].map(q).join(","));
+ const b=new Blob(["\ufeff"+C.join(",")+"\n"+L.join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="pipeline-selecao.csv";a.click()};
+async function ensureWebhook(){
+  let u=localStorage.getItem(WK)||"";
+  if(u)return u;
+  u=(prompt("Cole a URL do webhook da rotina «CRM pipeline — adicionar editais» (painel de rotinas do Grok Bot). Só precisa uma vez neste navegador.")||"").trim();
+  if(!u)return "";
+  localStorage.setItem(WK,u);return u;
+}
+$("crm").onclick=async()=>{
+  if(!S.size)return alert("Selecione ao menos um edital.");
+  const urls=[...S];
+  const wh=await ensureWebhook();
+  if(!wh){
+    const msg="CRM adicionar\n"+urls.join("\n");
+    try{await navigator.clipboard.writeText(msg)}catch(e){}
+    say("Webhook não configurado. Copiei o comando pro chat — cole aqui no Grok Bot.");
+    return;
+  }
+  $("crm").disabled=true;say(`Enviando ${urls.length} ao CRM…`);
+  try{
+    const r=await fetch(wh,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({urls,status:"Interessado",source:"pipeline.html"})});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    say(`Enviado ${urls.length} ao CRM. Confira a planilha e a confirmação no chat.`);
+  }catch(e){
+    const msg="CRM adicionar\n"+urls.join("\n");
+    try{await navigator.clipboard.writeText(msg)}catch(x){}
+    say("Falha no webhook ("+e.message+"). Copiei as URLs — cole no chat com «adiciona no CRM».");
+  }finally{$("crm").disabled=false;}
+};
+</script></body></html>
