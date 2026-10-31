@@ -1,39 +1,28 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Radar Licitações — Pipeline CRM</title><link rel="stylesheet" href="shared.css"></head><body>
-<main><h1>Pipeline: escolha onde participar</h1><p class="sub" id="meta">Licitações abertas de TI/IA (JP, Campina Grande, Recife) — dados do PNCP.</p>
-<div class="note"><strong>Como usar.</strong> Marque os editais (ou <b>Selecionar todos</b>), depois clique em <b>Enviar ao CRM</b> — as linhas vão para a planilha fixa <a href="https://docs.google.com/spreadsheets/d/1_0zMomqK23OO1W-9AT9rywkkuuZt1iUHeMw4jKmqSik/edit" target="_blank" rel="noopener">Radar Licitações — Pipeline CRM</a>. Também dá pra marcar direto nas páginas de cada cidade. A seleção fica salva neste navegador. Fonte: PNCP.</div>
+<main><h1>Pipeline CRM</h1><p class="sub">TI/IA em João Pessoa, Campina Grande e Recife (PB/PE) — dados do PNCP. Planilha: <a href="https://docs.google.com/spreadsheets/d/1_0zMomqK23OO1W-9AT9rywkkuuZt1iUHeMw4jKmqSik/edit" target="_blank" rel="noopener">Radar Licitações — Pipeline CRM ↗</a></p>
+<div class="note"><strong>Como usar.</strong> Clique ☆ num edital abaixo (ou nas páginas das cidades) → vai para <b>Interessado</b>. Arraste o card entre colunas ou troque no seletor para mudar o status — a planilha é atualizada pelo webhook. Só entram editais PB/PE, TI/IA, com prazo e modalidade.</div>
 <div class="kpis" id="kpis"></div>
-<section class="panel" aria-label="Editais abertos">
+<section class="kanban" id="kb" aria-label="Quadro do pipeline"></section>
+<section class="panel" aria-label="Editais abertos TI/IA">
+<h2>Editais abertos TI/IA — marque com ☆</h2>
 <div class="filters"><label class="q">Buscar<input type="search" id="fq" placeholder="ex.: software, nuvem"></label>
-<label class="chk"><input type="checkbox" id="fa"> Mostrar todos abertos (não só TI/IA)</label>
-<button id="sel" type="button">Selecionar todos</button>
-<button id="crm" type="button" class="primary">Enviar ao CRM</button>
-<button id="cp" type="button">Copiar URLs</button>
-<button id="dl" type="button">Baixar CSV seleção</button>
-<button id="clr" type="button">Limpar seleção</button></div>
-<p class="count" id="cnt" aria-live="polite"></p>
-<div id="dest"></div>
-<div id="res"></div></section></main>
+<button id="dl" type="button">Baixar CSV do CRM</button><button id="wh" type="button">Configurar webhook</button></div>
+<p class="count" id="cnt" aria-live="polite"></p><div id="res"></div></section></main>
 <script src="shared.js"></script><script>
-shell("pipeline.html");$("dest").innerHTML=crmDest();selCount();
-const ICP=/\b(software|inteligencia artificial|chatbot|cloud|nuvem|tecnologia da informacao|licen[cs]as? de (uso|software)|saas|aplicativo|data ?center|ciberseguranca|seguranca da informacao|sistemas? (de gestao|de informac|web|informatizad|integrad)|desenvolvimento de sistemas|banco de dados|solucao tecnologica|informatica)\b/;
-const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/sistema de registro de precos|portal de compras publicas|\bsrp\b/g,"");
-const S=SEL;let D=[],visible=[];
-const save=()=>{saveSel();kp();selCount()};
-const now=new Date().toISOString().slice(0,19);
-Promise.all([["oportunidades.json","jp"],["oportunidades-cg.json","cg"],["oportunidades-pe.json","pe"]].map(([f,c])=>fetch(f).then(r=>r.json()).then(j=>(j.oportunidades||[]).map(o=>({...o,cid:c,icp:ICP.test(norm(o.objeto))}))).catch(()=>[])))
-.then(a=>{D=a.flat().filter(o=>o.data_encerramento&&o.data_encerramento>=now);["fq","fa"].forEach(i=>$(i).addEventListener("input",draw));draw()});
-function kp(){const ab=D.filter(o=>o.icp);$("kpis").innerHTML=[[ab.length,"abertas TI/IA"],[D.length,"abertas no total"],[S.size,"selecionadas"]].map(([b,s])=>`<div class="kpi"><b>${b}</b><small>${s}</small></div>`).join("")}
-function draw(){kp();const q=norm($("fq").value).trim(),all=$("fa").checked;
- visible=D.filter(o=>(all||o.icp)&&(!q||norm(o.objeto+" "+o.orgao).includes(q))).sort((a,b)=>a.data_encerramento.localeCompare(b.data_encerramento));
- $("cnt").textContent=`${visible.length} editais abertos`+(visible.length>500?" · mostrando 500":"");
- $("res").innerHTML=visible.length?`<div class="tw"><table><thead><tr><th><span class="sr">Selecionar</span></th><th>Cidade</th><th>Órgão</th><th>Objeto</th><th>Encerramento</th><th>Valor estimado</th><th><span class="sr">Link</span></th></tr></thead><tbody>${visible.slice(0,500).map(o=>`<tr><td><input type="checkbox" aria-label="Selecionar" data-u="${esc(o.url)}"${S.has(o.url)?" checked":""}></td><td data-l="Cidade"><span class="pill ${o.cid}">${o.cid.toUpperCase()}</span></td><td data-l="Órgão">${esc(o.orgao)}</td><td data-l="Objeto" title="${esc(o.objeto)}">${esc((o.objeto||"").slice(0,160))}</td><td data-l="Encerramento">${dt(o.data_encerramento)}</td><td class="v" data-l="Valor">${brl(o.valor_estimado)}</td><td><a class="open" href="${esc(o.url)}" target="_blank" rel="noopener">Ver no PNCP ↗</a></td></tr>`).join("")}</tbody></table></div>`:empty("Nenhum edital aberto com esse filtro.");
- $("res").querySelectorAll("input[data-u]").forEach(c=>c.onchange=()=>{c.checked?S.add(c.dataset.u):S.delete(c.dataset.u);save()});}
-$("sel").onclick=()=>{visible.slice(0,500).forEach(o=>S.add(o.url));save();draw();say(`Selecionados ${Math.min(visible.length,500)} da lista atual.`);};
-$("cp").onclick=()=>{if(!S.size)return alert("Nenhum edital selecionado.");navigator.clipboard.writeText([...S].join("\n")).then(()=>{say(`Copiado ${S.size} URL(s).`);$("cp").textContent=`Copiado (${S.size})`;setTimeout(()=>$("cp").textContent="Copiar URLs",2000)})};
-$("clr").onclick=()=>{S.clear();save();draw();say("Seleção limpa.");};
-$("dl").onclick=()=>{const C="status,marcado_em,fonte,municipio,orgao,objeto,valor_estimado,data_encerramento,modalidade,url_pncp,id_controle,notas".split(","),q=v=>`"${String(v??"").replace(/"/g,'""').replace(/\s+/g," ")}"`,t=new Date().toISOString().slice(0,16).replace("T"," ");
- const L=D.filter(o=>S.has(o.url)).map(o=>["Interessado",t,o.cid,o.municipio,o.orgao,o.objeto,o.valor_estimado,(o.data_encerramento||"").replace("T"," "),o.modalidade,o.url,o.id,""].map(q).join(","));
- const b=new Blob(["\ufeff"+C.join(",")+"\n"+L.join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="pipeline-selecao.csv";a.click()};
-$("crm").onclick=async()=>{$("crm").disabled=true;try{await sendToCrm([...S])}finally{$("crm").disabled=false}};
+shell("pipeline.html");let D=[];const now=new Date().toISOString().slice(0,19);
+Promise.all([["oportunidades.json","jp"],["oportunidades-cg.json","cg"],["oportunidades-pe.json","pe"]].map(([f,c])=>fetch(f).then(r=>r.json()).then(j=>(j.oportunidades||[]).map(o=>({...o,cid:c}))).catch(()=>[])))
+.then(a=>{D=a.flat().filter(o=>o.data_encerramento&&o.data_encerramento>=now&&isIcp(o));$("fq").addEventListener("input",draw);draw()});
+function board(){const it=Object.values(CRM);
+ $("kpis").innerHTML=STATUS.map(s=>[it.filter(r=>r.status==s).length,s]).concat([[D.length,"abertos TI/IA"]]).map(([b,s])=>`<div class="kpi"><b>${b}</b><small>${s}</small></div>`).join("");
+ $("kb").innerHTML=STATUS.map(s=>`<div class="col" data-s="${s}"><h3>${s} (${it.filter(r=>r.status==s).length})</h3>${it.filter(r=>r.status==s).sort((a,b)=>(a.prazo||"").localeCompare(b.prazo||"")).map(r=>`<div class="card" draggable="true" data-u="${esc(r.url_pncp)}"><b>${esc(r.orgao)}</b>${esc((r.objeto||"").slice(0,110))}…<div class="acts">${prazoBadge(r.prazo)} <span>${r.valor_estimado!==""?brl(+r.valor_estimado):"sigiloso"}</span> <select aria-label="Status">${STATUS.map(x=>`<option${x==r.status?" selected":""}>${x}</option>`).join("")}</select> <a href="${esc(r.url_pncp)}" target="_blank" rel="noopener">PNCP ↗</a></div></div>`).join("")||'<small>vazio</small>'}</div>`).join("");
+ const mv=(u,s)=>{const r=CRM[u];if(r&&r.status!=s)crmMark({url:u},s,draw)};
+ $("kb").querySelectorAll(".card").forEach(c=>{c.querySelector("select").onchange=e=>mv(c.dataset.u,e.target.value);c.ondragstart=e=>e.dataTransfer.setData("text",c.dataset.u)});
+ $("kb").querySelectorAll(".col").forEach(c=>{c.ondragover=e=>{e.preventDefault();c.classList.add("drag")};c.ondragleave=()=>c.classList.remove("drag");c.ondrop=e=>{e.preventDefault();c.classList.remove("drag");mv(e.dataTransfer.getData("text"),c.dataset.s)}})}
+function draw(){board();const q=norm($("fq").value).trim(),v=D.filter(o=>!q||norm(o.objeto+" "+o.orgao).includes(q)).sort((a,b)=>a.data_encerramento.localeCompare(b.data_encerramento)).slice(0,300);
+ $("cnt").textContent=`${v.length} editais abertos TI/IA`;
+ $("res").innerHTML=v.length?`<div class="tw"><table><thead><tr><th>⭐</th><th>Cidade</th><th>Órgão</th><th>Objeto</th><th>Encerramento</th><th>Valor</th><th><span class="sr">Link</span></th></tr></thead><tbody>${v.map(o=>`<tr>${starCell(o)}<td data-l="Cidade"><span class="pill ${o.cid}">${o.cid.toUpperCase()}</span></td><td data-l="Órgão">${esc(o.orgao)}</td><td data-l="Objeto" title="${esc(o.objeto)}">${esc((o.objeto||"").slice(0,160))}</td><td data-l="Encerramento">${dt(o.data_encerramento)} ${prazoBadge(o.data_encerramento)}</td><td class="v" data-l="Valor">${brl(o.valor_estimado)}</td><td><a class="open" href="${esc(o.url)}" target="_blank" rel="noopener">Ver no PNCP ↗</a></td></tr>`).join("")}</tbody></table></div>`:empty("Nenhum edital aberto TI/IA com esse filtro.");
+ bindStars($("res"),v,draw)}
+$("wh").onclick=()=>{const w=prompt("URL do webhook da rotina «CRM pipeline — adicionar editais» (vazio = desligar):",localStorage.getItem(CRM_WK)||"");if(w===null)return;w.trim()?localStorage.setItem(CRM_WK,w.trim()):localStorage.removeItem(CRM_WK);toast(w.trim()?"Webhook salvo.":"Webhook desligado — ⭐ copia para colar no chat.")};
+$("dl").onclick=()=>{const q=v=>`"${String(v??"").replace(/"/g,'""')}"`,L=Object.values(CRM).map(r=>CRM_COLS.map(c=>q(r[c])).join(","));const b=new Blob(["\ufeff"+CRM_COLS.join(",")+"\n"+L.join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="pipeline-crm.csv";a.click()};
 </script></body></html>
