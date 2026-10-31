@@ -1,45 +1,30 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Radar Concursos — João Pessoa × Campina Grande</title>
-<style>
-body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f9;color:#1c2430}
-header{background:#123a5e;color:#fff;padding:18px 24px}header a{color:#bfe0ff}
-h1{margin:0;font-size:22px}main{padding:18px 24px;max-width:1300px;margin:auto}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
-.card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px #0002}
-.card h2{margin:0 0 8px;font-size:18px}.jp h2{color:#0b6bcb}.cg h2{color:#c4561b}
-.kpis{display:flex;gap:10px;flex-wrap:wrap}.k{flex:1;min-width:110px;background:#f0f3f7;border-radius:8px;padding:8px}.k b{display:block;font-size:22px}.k small{color:#556}
-.bar{display:flex;align-items:center;gap:6px;font-size:12px;margin:3px 0}.bar span:first-child{width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar i{display:block;height:12px;border-radius:3px}.jp i{background:#0b6bcb}.cg i{background:#c4561b}
-.f{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.f select,.f input{padding:7px;border:1px solid #ccd;border-radius:6px}.f input{flex:1;min-width:200px}
-table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid #e5e8ee;text-align:left;vertical-align:top}
-th{background:#e9eef5;position:sticky;top:0}td.v{text-align:right;white-space:nowrap}.tag{padding:2px 6px;border-radius:4px;color:#fff;font-size:11px}.tjp{background:#0b6bcb}.tcg{background:#c4561b}
-</style></head><body>
-<header><h1>Radar Concursos — João Pessoa × Campina Grande</h1><div id="meta" style="font-size:13px;opacity:.85"></div><a href="index.html">← Radar João Pessoa</a></header>
-<main><div class="grid" id="cards"></div>
-<div class="f"><select id="fc"><option value="">Ambas as cidades</option><option value="jp">João Pessoa</option><option value="cg">Campina Grande</option></select>
-<select id="fm"><option value="">Todas modalidades</option></select><select id="fe"><option value="">Todas esferas</option></select>
-<label style="align-self:center;font-size:13px"><input type="checkbox" id="fp"> só Prefeitura</label>
-<input id="fq" placeholder="Buscar no objeto ou órgão…"></div>
-<div id="cnt" style="font-size:13px;margin-bottom:6px"></div>
-<table><thead><tr><th>Cidade</th><th>Órgão</th><th>Modalidade</th><th>Objeto</th><th>Publicação</th><th>Valor estimado</th><th>PNCP</th></tr></thead><tbody id="tb"></tbody></table></main>
-<script>
-const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const brl=v=>v==null?"—":v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}),dt=s=>s?s.slice(0,10).split("-").reverse().join("/"):"—";
-let D=[],J;
-const cnpj=o=>(o.id||"").slice(0,14);
-fetch("comparativo.json").then(r=>r.json()).then(j=>{J=j;$("meta").textContent=`Fonte: PNCP (API de consulta) · atualizado ${j.atualizado_em.replace("T"," ").slice(0,16)} (BRT) · período ${dt(j.cidades.jp.periodo.inicio)}–${dt(j.cidades.jp.periodo.fim)}`;
- for(const[k,c]of Object.entries(j.cidades))c.oportunidades.forEach(o=>D.push({...o,cid:k,pref:cnpj(o)===c.cnpj_pref}));
- const opt=(el,vals)=>[...new Set(vals)].filter(Boolean).sort().forEach(v=>el.insertAdjacentHTML("beforeend",`<option>${esc(v)}</option>`));
- opt($("fm"),D.map(o=>o.modalidade));opt($("fe"),D.map(o=>o.esfera));
- $("cards").innerHTML=Object.entries(j.cidades).map(([k,c])=>{const L=D.filter(o=>o.cid==k),n=f=>L.filter(f).length;
-  const mod={};L.forEach(o=>mod[o.modalidade]=(mod[o.modalidade]||0)+1);const top=Object.entries(mod).sort((a,b)=>b[1]-a[1]).slice(0,6),mx=top[0]?.[1]||1;
-  return `<div class="card ${k}"><h2>${c.nome}</h2><small>IBGE ${c.ibge} · Pref. CNPJ ${c.cnpj_pref}</small><div class="kpis" style="margin-top:8px">
-  <div class="k"><b>${c.total}</b><small>oportunidades</small></div><div class="k"><b>${n(o=>o.pref)}</b><small>só Prefeitura</small></div>
-  <div class="k"><b>${n(o=>o.esfera=="federal")}</b><small>federal</small></div><div class="k"><b>${n(o=>o.esfera=="estadual")}</b><small>estadual</small></div><div class="k"><b>${n(o=>o.esfera=="municipal")}</b><small>municipal</small></div></div>
-  <h4 style="margin:12px 0 4px">Top modalidades</h4>${top.map(([m,v])=>`<div class="bar"><span title="${esc(m)}">${esc(m)}</span><i style="width:${Math.max(2,v/mx*200)}px"></i>${v}</div>`).join("")}</div>`}).join("");
- ["fc","fm","fe","fp","fq"].forEach(i=>$(i).addEventListener("input",draw));draw();});
-function draw(){const c=$("fc").value,m=$("fm").value,e=$("fe").value,p=$("fp").checked,q=$("fq").value.toLowerCase();
+<title>Radar Licitações — João Pessoa × Campina Grande</title><link rel="stylesheet" href="shared.css"></head><body>
+<main><h1>João Pessoa × Campina Grande</h1><p class="sub" id="meta">Carregando…</p>
+<div class="note"><strong>Informativo.</strong> Dados do PNCP; não é parecer jurídico. Verifique prazos e condições no edital original.</div>
+<div class="grid2" id="cards"></div>
+<section class="panel" aria-label="Lista comparada">
+<div class="filters"><label class="q">Buscar no objeto ou órgão<input type="search" id="fq" placeholder="ex.: software, provas digitais"></label>
+<label>Cidade<select id="fc"><option value="">Ambas</option><option value="jp">João Pessoa</option><option value="cg">Campina Grande</option></select></label>
+<label>Modalidade<select id="fm"><option value="">Todas</option></select></label>
+<label>Esfera<select id="fe"><option value="">Todas</option></select></label>
+<label class="chk"><input type="checkbox" id="fp"> Só Prefeitura</label></div>
+<p class="count" id="cnt" aria-live="polite"></p><div id="res"></div></section></main>
+<script src="shared.js"></script><script>
+shell("comparativo.html");let D=[];$("res").innerHTML=loading();
+fetch("comparativo.json").then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{
+ const p=j.cidades.jp.periodo;$("meta").textContent=`Atualizado ${j.atualizado_em.replace("T"," ").slice(0,16)} (horário de Brasília) · publicações de ${dt(p.inicio)} a ${dt(p.fim)}`;
+ for(const[k,c]of Object.entries(j.cidades))c.oportunidades.forEach(o=>D.push({...o,cid:k,pref:(o.id||"").slice(0,14)===c.cnpj_pref}));
+ fill($("fm"),D.map(o=>o.modalidade));fill($("fe"),D.map(o=>o.esfera));
+ $("cards").innerHTML=Object.entries(j.cidades).map(([k,c])=>{const L=D.filter(o=>o.cid==k),n=f=>L.filter(f).length,mod={};L.forEach(o=>mod[o.modalidade]=(mod[o.modalidade]||0)+1);
+  const top=Object.entries(mod).sort((a,b)=>b[1]-a[1]).slice(0,6),mx=top[0]?.[1]||1;
+  return `<div class="panel ${k}"><h2 style="margin:0">${esc(c.nome)}</h2><small style="color:var(--muted)">IBGE ${c.ibge} · CNPJ Prefeitura ${c.cnpj_pref}</small>
+  <div class="kpis" style="margin:14px 0"><div class="kpi"><b>${c.total}</b><small>licitações</small></div><div class="kpi"><b>${n(o=>o.pref)}</b><small>da Prefeitura</small></div><div class="kpi"><b>${brl(L.reduce((s,o)=>s+(o.valor_estimado||0),0))}</b><small>valor estimado</small></div></div>
+  <h3 style="font-size:14px;margin:0 0 6px">Modalidades mais usadas</h3>${top.map(([m,v])=>`<div class="bar"><span title="${esc(m)}">${esc(m)}</span><i style="width:${Math.max(3,v/mx*100)}%"></i>${v}</div>`).join("")}</div>`}).join("");
+ ["fc","fm","fe","fp","fq"].forEach(i=>$(i).addEventListener("input",draw));draw();
+}).catch(()=>$("res").innerHTML=empty("Não foi possível carregar os dados. Tente recarregar a página."));
+function draw(){const c=$("fc").value,m=$("fm").value,e=$("fe").value,p=$("fp").checked,q=$("fq").value.toLowerCase().trim();
  const F=D.filter(o=>(!c||o.cid==c)&&(!m||o.modalidade==m)&&(!e||o.esfera==e)&&(!p||o.pref)&&(!q||((o.objeto||"")+" "+(o.orgao||"")).toLowerCase().includes(q))).sort((a,b)=>(b.data_publicacao||"").localeCompare(a.data_publicacao||""));
- $("cnt").textContent=`${F.length} oportunidades (JP ${F.filter(o=>o.cid=="jp").length} · CG ${F.filter(o=>o.cid=="cg").length})`;
- $("tb").innerHTML=F.slice(0,500).map(o=>`<tr><td><span class="tag t${o.cid}">${o.cid.toUpperCase()}</span></td><td>${esc(o.orgao)}<br><small>${esc(o.unidade)}</small></td><td>${esc(o.modalidade)}</td><td title="${esc(o.objeto)}">${esc((o.objeto||"").slice(0,140))}${(o.objeto||"").length>140?"…":""}</td><td>${dt(o.data_publicacao)}</td><td class="v">${brl(o.valor_estimado)}</td><td><a href="${esc(o.url)}" target="_blank">abrir</a></td></tr>`).join("")+(F.length>500?`<tr><td colspan=7>… mostrando 500 de ${F.length}; refine o filtro.</td></tr>`:"");}
+ $("cnt").textContent=`${F.length.toLocaleString("pt-BR")} licitações (JP ${F.filter(o=>o.cid=="jp").length} · CG ${F.filter(o=>o.cid=="cg").length})`+(F.length>500?" · mostrando 500 mais recentes":"");
+ $("res").innerHTML=F.length?`<div class="tw"><table><thead><tr><th>Cidade</th><th>Órgão</th><th>Modalidade</th><th>Objeto</th><th>Publicação</th><th>Encerramento</th><th>Valor estimado</th><th><span class="sr">Link</span></th></tr></thead><tbody>${F.slice(0,500).map(o=>row(o,1)).join("")}</tbody></table></div>`:empty("Nenhuma licitação com esses filtros.");}
 </script></body></html>

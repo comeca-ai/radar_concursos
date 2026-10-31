@@ -1,52 +1,12 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Radar Concursos — Campina Grande</title><style>
-body{font-family:system-ui,sans-serif;margin:0;background:#f5f6f8;color:#1b1f24}
-header{background:#c4561b;color:#fff;padding:16px 20px}header a{color:#ffe8d6}
-h1{margin:0;font-size:20px}small{opacity:.9}main{padding:16px 20px;max-width:1200px;margin:auto}
-.cards{display:flex;gap:12px;flex-wrap:wrap}.card{background:#fff;border-radius:8px;padding:12px 16px;box-shadow:0 1px 2px #0002;min-width:130px}
-.card b{display:block;font-size:22px}.f{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}input,select{padding:8px;border:1px solid #ccc;border-radius:6px}
-input{flex:1;min-width:220px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:14px;vertical-align:top}
-th{background:#f3e6dc;position:sticky;top:0}.v{white-space:nowrap;text-align:right}a{color:#9a3d0f}
-</style></head><body>
-<header><h1>Radar Concursos — Campina Grande/PB</h1><small id="meta">carregando…</small><div style="margin-top:6px;font-size:13px"><a href="index.html">João Pessoa</a> · <a href="comparativo.html">Comparativo</a></div></header><main>
-<div class="cards">
-<div class="card">Oportunidades<b id="cTot">–</b></div>
-<div class="card">Filtradas<b id="cFil">–</b></div>
-<div class="card">Só Prefeitura<b id="cPref">–</b></div>
-<div class="card">Valor estimado (filtro)<b id="cVal">–</b></div>
-<div class="card">Abertas hoje<b id="cAb">–</b></div>
-</div>
-<div class="f">
-<input id="q" placeholder="Buscar objeto ou órgão…">
-<select id="esf"><option value="">Todas as esferas</option></select>
-<select id="mod"><option value="">Todas as modalidades</option></select>
-<label style="align-self:center"><input type="checkbox" id="pref"> só Prefeitura (CNPJ 08.993.917/0001-46)</label>
-<label style="align-self:center"><input type="checkbox" id="ab"> só com proposta aberta</label>
-</div>
-<table><thead><tr><th>Publicação</th><th>Objeto</th><th>Órgão</th><th>Esfera</th><th>Modalidade</th><th>Encerra</th><th class="v">Valor est.</th></tr></thead><tbody id="tb"></tbody></table>
-<p><small>Fonte: API de consulta do PNCP · município IBGE 2504009. Informativo; não é aconselhamento jurídico.</small></p>
-</main>
-<script>
-const CNPJ_PREF="08993917000146";
-const brl=v=>v==null?"—":v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const dt=s=>s?new Date(s+(s.length<=19?"-03:00":"")).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",dateStyle:"short",timeStyle:s.length>10?"short":undefined}):"—";
-const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const isPref=o=>(o.id||"").startsWith(CNPJ_PREF)||(o.orgao||"").toUpperCase().includes("MUNICIPIO DE CAMPINA GRANDE");
-let D=[];
-fetch("oportunidades-cg.json").then(r=>r.json()).then(j=>{
-  D=j.oportunidades||[];
-  document.getElementById("meta").textContent=`Período ${j.periodo.inicio} a ${j.periodo.fim} · atualizado ${new Date(j.atualizado_em).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo"})} (horário de Brasília) · ${D.length} no PNCP`;
-  document.getElementById("cTot").textContent=D.length;
-  document.getElementById("cPref").textContent=D.filter(isPref).length;
-  for(const[k,id]of[["esfera","esf"],["modalidade","mod"]])
-    [...new Set(D.map(o=>o[k]).filter(Boolean))].sort().forEach(v=>document.getElementById(id).add(new Option(v,v)));
-  ["q","esf","mod","ab","pref"].forEach(i=>document.getElementById(i).oninput=r);r();
-});
-function aberta(o){return o.data_encerramento&&new Date(o.data_encerramento+"-03:00")>new Date()}
-function r(){
-  const q=document.getElementById("q").value.toLowerCase(),e=esf.value,m=mod.value,a=ab.checked,p=pref.checked;
-  const F=D.filter(o=>(!q||(o.objeto+" "+o.orgao+" "+(o.unidade||"")).toLowerCase().includes(q))&&(!e||o.esfera==e)&&(!m||o.modalidade==m)&&(!a||aberta(o))&&(!p||isPref(o)));
-  cFil.textContent=F.length;cVal.textContent=brl(F.reduce((s,o)=>s+(o.valor_estimado||0),0));cAb.textContent=D.filter(aberta).length;
-  tb.innerHTML=F.slice(0,500).map(o=>`<tr><td>${dt(o.data_publicacao)}</td><td><a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.objeto)}</a></td><td>${esc(o.orgao)}<br><small>${esc(o.unidade)}</small></td><td>${esc(o.esfera)||"—"}</td><td>${esc(o.modalidade)}</td><td>${dt(o.data_encerramento)}</td><td class="v">${brl(o.valor_estimado)}</td></tr>`).join("")+(F.length>500?`<tr><td colspan=7>… mostrando 500 de ${F.length}; refine o filtro.</td></tr>`:"");
-}
-</script></body></html>
+<title>Radar Licitações — Campina Grande</title><link rel="stylesheet" href="shared.css"></head><body>
+<main><h1>Licitações públicas em Campina Grande</h1><p class="sub" id="meta">Carregando…</p>
+<div class="note"><strong>Informativo.</strong> Dados do PNCP; não é parecer jurídico. Verifique prazos e condições no edital original.</div>
+<div class="kpis" id="kpis"></div>
+<section class="panel" aria-label="Lista de licitações">
+<div class="filters"><label class="q">Buscar no objeto ou órgão<input type="search" id="fq" placeholder="ex.: software, provas digitais, merenda"></label>
+<label>Modalidade<select id="fm"><option value="">Todas</option></select></label>
+<label>Esfera<select id="fe"><option value="">Todas</option></select></label>
+<label class="chk"><input type="checkbox" id="fp"> Só Prefeitura</label><button id="clr" type="button">Limpar</button></div>
+<p class="count" id="cnt" aria-live="polite"></p><div id="res"></div></section></main>
+<script src="shared.js"></script><script>cityPage({file:"oportunidades-cg.json",cnpj:"08993917000146",active:"campina.html"})</script></body></html>
