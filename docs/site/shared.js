@@ -12,7 +12,7 @@ const empty=msg=>`<div class="state">${msg}</div>`;
 function fill(el,vals){[...new Set(vals)].filter(Boolean).sort().forEach(v=>el.insertAdjacentHTML("beforeend",`<option>${esc(v)}</option>`))}
 function row(o,city){const ob=o.objeto||"";return `<tr>${starCell(o)}${city?`<td data-l="Cidade"><span class="pill ${o.cid}">${o.cid.toUpperCase()}</span></td>`:""}<td data-l="Órgão">${esc(o.orgao)}<br><small>${esc(o.unidade)}</small></td><td data-l="Modalidade"><span class="pill">${esc(o.modalidade)}</span></td><td data-l="Objeto" title="${esc(ob)}">${esc(ob.slice(0,160))}${ob.length>160?"…":""}</td><td data-l="Publicação">${dt(o.data_publicacao)}</td><td data-l="Encerramento">${dt(o.data_encerramento)} ${prazoBadge(o.data_encerramento)}</td><td class="v" data-l="Valor estimado">${brl(o.valor_estimado)}</td><td><a class="open" href="${esc(o.url)}" target="_blank" rel="noopener">Ver no PNCP ↗</a></td></tr>`}
 const CRM_SHEET={id:"1_0zMomqK23OO1W-9AT9rywkkuuZt1iUHeMw4jKmqSik",url:"https://docs.google.com/spreadsheets/d/1_0zMomqK23OO1W-9AT9rywkkuuZt1iUHeMw4jKmqSik/edit",title:"Radar Licitações — Pipeline CRM"};
-const CRM_WK="radar_crm_webhook",CRM_DB="radar_crm_items",STATUS=["Interessado","Em proposta","Enviado","Descartado"];
+const CRM_DB="radar_crm_items",STATUS=["Interessado","Em proposta","Enviado","Descartado"];
 const CRM_COLS="status,marcado_em,fonte,municipio,orgao,objeto,valor_estimado,data_encerramento,modalidade,url_pncp,id_controle,notas,cnpj_orgao,ano,sequencial,prazo,vencedor,valor_homologado,data_resultado,fim_contrato".split(",");
 const UF={jp:"PB",cg:"PB",pe:"PE"};
 const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/sistema de registro de precos|portal de compras publicas|\bsrp\b/g,"");
@@ -31,20 +31,22 @@ function crmCheck(o){const k=pkeys(o),e=[];
  if(!o.modalidade)e.push("sem modalidade");return e}
 function crmRow(o,status){const k=pkeys(o),enc=(o.data_encerramento||"").replace("T"," ").slice(0,19);
  return{status:status||"Interessado",marcado_em:new Date().toLocaleString("sv-SE",{timeZone:"America/Sao_Paulo"}).slice(0,16),fonte:"PNCP/"+o.cid,municipio:o.municipio||"",uf:UF[o.cid],orgao:o.orgao||"",objeto:(o.objeto||"").replace(/\s+/g," "),valor_estimado:o.valor_estimado??"",data_encerramento:enc,modalidade:o.modalidade||"",url_pncp:o.url,id_controle:o.id||"",notas:o.valor_estimado==null?"valor sigiloso/não informado":"",...k,prazo:enc,vencedor:"",valor_homologado:"",data_resultado:"",fim_contrato:""}}
-async function crmPost(body){let wh=localStorage.getItem(CRM_WK)||"";
- if(!wh&&!localStorage.getItem(CRM_WK+"_asked")){localStorage.setItem(CRM_WK+"_asked","1");wh=(prompt("Cole a URL do webhook da rotina «CRM pipeline — adicionar editais» (só uma vez). Vazio = copiar para colar no chat.")||"").trim();if(wh)localStorage.setItem(CRM_WK,wh)}
- const copy=async()=>{try{await navigator.clipboard.writeText("CRM "+body.action+"\n"+JSON.stringify(body.rows))}catch(e){}return"copiado"};
- if(!wh)return copy();
- try{const r=await fetch(wh,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,sheet_id:CRM_SHEET.id,columns:CRM_COLS,source:location.pathname})});if(!r.ok)throw 0;return"ok"}catch(e){return copy()}}
+async function crmPost(body){/* sempre same-origin /api/crm; falha → oferece copiar p/ chat */
+ try{const r=await fetch("/api/crm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,source:location.pathname})});if(!r.ok)throw 0;return"ok"}catch(e){return"falha"}}
+async function crmCopy(body){try{await navigator.clipboard.writeText("CRM "+body.action+"\n"+JSON.stringify(body.rows));toast("Copiado — cole no chat do Grok Bot.")}catch(e){toast("Não consegui copiar.")}}
+function crmToast(ok,msg,body,undo){if(ok=="ok")return toast(`${msg} · Salvo no CRM · <a href="pipeline.html">ver kanban</a> · ${sheetLink}`,undo);
+ toast(`${msg} (só neste navegador — falha ao gravar na planilha) <button type="button" id="cpy">copiar para o chat</button>`,undo);const c=$("cpy");if(c)c.onclick=()=>crmCopy(body)}
 function toast(html,undo){let t=$("toast");if(!t){document.body.insertAdjacentHTML("beforeend",`<div id="toast" class="toast" role="status" aria-live="polite"></div>`);t=$("toast")}
  t.innerHTML=html+(undo?` <button type="button" id="undo">Desfazer</button>`:"");t.classList.add("on");if(undo)$("undo").onclick=()=>{undo();t.classList.remove("on")};clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),7000)}
 const sheetLink=`<a href="${CRM_SHEET.url}" target="_blank" rel="noopener">abrir planilha ↗</a>`;
 async function crmMark(o,status,onChange){const u=o.url,prev=CRM[u];
- if(!status&&prev){delete CRM[u];crmSave();onChange&&onChange();const r=await crmPost({action:"remove",rows:[{url_pncp:u}]});toast(`Removido do CRM${r=="copiado"?" (webhook off: copiei p/ colar no chat)":""} · ${sheetLink}`,()=>{CRM[u]=prev;crmSave();crmPost({action:"upsert",rows:[prev]});onChange&&onChange()});return}
- const err=crmCheck(o);if(err.length&&!prev){toast(`Não marcado: ${esc(err.join(", "))}. Ver checklist em docs/CRM.md.`);return}
+ if(!status&&prev){delete CRM[u];crmSave();onChange&&onChange();const body={action:"remove",rows:[{url_pncp:u}]};crmToast(await crmPost(body),"Removido",body,()=>{CRM[u]=prev;crmSave();crmPost({action:"upsert",rows:[prev]});onChange&&onChange()});return}
+ const err=crmCheck(o);if(err.length&&!prev){toast(`Não marcado: ${esc(err.join(", "))}.`);return}
  const row=prev?{...prev,status:status||"Interessado"}:crmRow(o,status);CRM[u]=row;crmSave();onChange&&onChange();
- const r=await crmPost({action:prev?"update_status":"upsert",rows:[row]});
- toast(`${prev?"Status → "+esc(row.status):"⭐ Foi pro CRM"}${r=="copiado"?" (webhook off: copiei p/ colar no chat)":""} · ${sheetLink}`,()=>{prev?CRM[u]=prev:delete CRM[u];crmSave();crmPost(prev?{action:"update_status",rows:[prev]}:{action:"remove",rows:[{url_pncp:u}]});onChange&&onChange()})}
+ const body={action:prev?"update_status":"upsert",rows:[row]};
+ crmToast(await crmPost(body),prev?"Status → "+esc(row.status):"⭐ Interessado",body,()=>{prev?CRM[u]=prev:delete CRM[u];crmSave();crmPost(prev?{action:"update_status",rows:[prev]}:{action:"remove",rows:[{url_pncp:u}]});onChange&&onChange()})}
+/* puxa linhas da planilha (se o servidor tiver credencial Sheets) e mescla no local */
+async function crmSync(){try{const j=await (await fetch("/api/crm")).json();(j.rows||[]).forEach(r=>{if(r.url_pncp)CRM[r.url_pncp]={...CRM[r.url_pncp],...r}});crmSave();return j.mode}catch(e){return"offline"}}
 const starCell=o=>{const on=!!CRM[o.url],bad=!on&&crmCheck(o).length;return `<td data-l="CRM"><button type="button" class="star${on?" on":""}${bad?" off":""}" data-u="${esc(o.url)}" aria-pressed="${on}" title="${on?"No CRM ("+esc(CRM[o.url].status)+") — clique p/ remover":bad?"Fora do checklist: "+esc(crmCheck(o).join(", ")):"Marcar Interessado"}">${on?"★":"☆"}</button></td>`};
 function bindStars(root,list,redraw){const by=Object.fromEntries(list.map(o=>[o.url,o]));root.querySelectorAll("button.star").forEach(b=>b.onclick=()=>crmMark(by[b.dataset.u],null,redraw))}
 function prazoBadge(d){if(!d)return"";const h=(new Date(d.replace(" ","T"))-new Date())/36e5;if(isNaN(h))return"";const c=h<0?"late":h<48?"hot":h<168?"warm":"";return `<span class="prazo ${c}">${h<0?"encerrado":h<48?"⏰ "+Math.max(1,Math.round(h))+"h":"em "+Math.round(h/24)+"d"}</span>`}
@@ -52,7 +54,7 @@ function prazoBadge(d){if(!d)return"";const h=(new Date(d.replace(" ","T"))-new 
 function cityPage(cfg){
  shell(cfg.active);const R=$("res");R.innerHTML=loading();let D=[],F=[];
  $("clr").insertAdjacentHTML("afterend",`<label class="chk"><input type="checkbox" id="fi"> Só interessados ⭐</label><label class="chk"><input type="checkbox" id="ft"> Só TI/IA</label>`);
- $("cnt").insertAdjacentHTML("afterend",`<p class="count">Clique ☆ para marcar <b>Interessado</b> — vai direto para <a href="${CRM_SHEET.url}" target="_blank" rel="noopener">${esc(CRM_SHEET.title)} ↗</a> · <a href="pipeline.html">ver kanban</a></p>`);
+ $("cnt").insertAdjacentHTML("afterend",`<p class="count">Clique ☆ para marcar <b>Interessado</b> — salva em <a href="${CRM_SHEET.url}" target="_blank" rel="noopener">${esc(CRM_SHEET.title)} ↗</a> · <a href="pipeline.html">ver kanban</a></p>`);
  fetch(cfg.file).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{
   D=j.oportunidades||[];D.forEach(o=>{o.cid=cfg.cid;o.pref=(o.id||"").slice(0,14)===cfg.cnpj});
   $("meta").textContent=`Atualizado ${(j.atualizado_em||"").replace("T"," ").slice(0,16)} (horário de Brasília) · publicações de ${dt(j.periodo?.inicio)} a ${dt(j.periodo?.fim)}`;
