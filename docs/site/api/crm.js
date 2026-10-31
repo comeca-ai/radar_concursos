@@ -54,7 +54,13 @@ async function sheetsWrite(body) {
 async function webhook(body) {
   const h = { "Content-Type": "application/json" };
   if (process.env.GROK_CRM_WEBHOOK_HEADER) { const [k, ...v] = process.env.GROK_CRM_WEBHOOK_HEADER.split(":"); h[k.trim()] = v.join(":").trim(); }
-  else if (process.env.GROK_CRM_WEBHOOK_KEY) h.Authorization = "Bearer " + process.env.GROK_CRM_WEBHOOK_KEY;
+  else {
+    let key = process.env.GROK_CRM_WEBHOOK_KEY;
+    if ((!key || /^\[REDACTED\]$/i.test(key)) && process.env.GROK_CRM_WEBHOOK_KEY_B64) {
+      try { key = Buffer.from(process.env.GROK_CRM_WEBHOOK_KEY_B64, "base64").toString("utf8"); } catch (e) { key = ""; }
+    }
+    if (key) h.Authorization = "Bearer " + key;
+  }
   const r = await fetch(webhookUrl(), { method: "POST", headers: h, body: JSON.stringify({ ...body, sheet_id: SHEET_ID, columns: COLS }) });
   if (!r.ok) throw new Error("webhook HTTP " + r.status); return { forwarded: true };
 }
