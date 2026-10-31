@@ -13,7 +13,14 @@ function creds() {
   }
   return email && key ? { email, key: key.replace(/\\n/g, "\n") } : null;
 }
-const mode = () => (process.env.GROK_CRM_WEBHOOK_URL ? "webhook" : creds() ? "sheets" : "none");
+function webhookUrl() {
+  if (process.env.GROK_CRM_WEBHOOK_URL && !/^\[REDACTED\]$/i.test(process.env.GROK_CRM_WEBHOOK_URL)) return process.env.GROK_CRM_WEBHOOK_URL;
+  if (process.env.GROK_CRM_WEBHOOK_URL_B64) {
+    try { return Buffer.from(process.env.GROK_CRM_WEBHOOK_URL_B64, "base64").toString("utf8"); } catch (e) { return ""; }
+  }
+  return "";
+}
+const mode = () => (webhookUrl() ? "webhook" : creds() ? "sheets" : "none");
 
 async function token(c) {
   const b64 = o => Buffer.from(JSON.stringify(o)).toString("base64url"), now = Math.floor(Date.now() / 1000);
@@ -48,7 +55,7 @@ async function webhook(body) {
   const h = { "Content-Type": "application/json" };
   if (process.env.GROK_CRM_WEBHOOK_HEADER) { const [k, ...v] = process.env.GROK_CRM_WEBHOOK_HEADER.split(":"); h[k.trim()] = v.join(":").trim(); }
   else if (process.env.GROK_CRM_WEBHOOK_KEY) h.Authorization = "Bearer " + process.env.GROK_CRM_WEBHOOK_KEY;
-  const r = await fetch(process.env.GROK_CRM_WEBHOOK_URL, { method: "POST", headers: h, body: JSON.stringify({ ...body, sheet_id: SHEET_ID, columns: COLS }) });
+  const r = await fetch(webhookUrl(), { method: "POST", headers: h, body: JSON.stringify({ ...body, sheet_id: SHEET_ID, columns: COLS }) });
   if (!r.ok) throw new Error("webhook HTTP " + r.status); return { forwarded: true };
 }
 function clean(b) {
